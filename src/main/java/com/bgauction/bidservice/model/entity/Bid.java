@@ -36,12 +36,12 @@ public class Bid {
 
     @NotNull
     @Positive
-    @Column(name = "auction_id")
+    @Column(name = "auction_id", updatable = false)
     private Long auctionId;
 
     @NotNull
     @Positive
-    @Column(name = "bidder_id")
+    @Column(name = "bidder_id", updatable = false)
     private Long bidderId;
 
     @NotNull
