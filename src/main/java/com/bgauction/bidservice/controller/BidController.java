@@ -27,21 +27,19 @@ public class BidController {
 
     private final BidService bidService;
     private final BidMapper bidMapper;
+    private static final String AUCTION_ID_GREATER_THEN_0 = "Auction id must be greater then 0";
+    private static final String BIDDER_ID_GREATER_THEN_0 = "Bidder id must be greater then 0";
 
     @PostMapping
     public ResponseEntity<?> createBid(@Valid @RequestBody BidCreationDto bidDto) {
-        try {
-            BidDto savedBid = bidMapper.bidToBidDto(bidService.saveBid(bidMapper.bidCreationDtoToBid(bidDto)));
-            return ResponseEntity.status(201).body(savedBid);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
-        }
+        BidDto savedBid = bidMapper.bidToBidDto(bidService.saveBid(bidMapper.bidCreationDtoToBid(bidDto)));
+        return ResponseEntity.status(201).body(savedBid);
     }
 
     @GetMapping("/auction/{auctionId}")
     public ResponseEntity<?> getBidsByAuctionId(@PathVariable Long auctionId) {
         if (auctionId < 1) {
-            return new ResponseEntity<>("Invalid Auction id: " + auctionId, HttpStatus.BAD_REQUEST);
+            return new ResponseEntity<>(AUCTION_ID_GREATER_THEN_0, HttpStatus.BAD_REQUEST);
         }
         List<Bid> bids = bidService.findAllBidsByAuctionId(auctionId);
         return ResponseEntity.ok(bids);
@@ -50,7 +48,7 @@ public class BidController {
     @GetMapping("/bidder/{bidderId}/last")
     public ResponseEntity<?> getLastBidForEachAuction(@PathVariable Long bidderId) {
         if (bidderId < 1) {
-            return new ResponseEntity<>("Invalid bidder id: " + bidderId, HttpStatus.BAD_REQUEST);
+            return new ResponseEntity<>(BIDDER_ID_GREATER_THEN_0, HttpStatus.BAD_REQUEST);
         }
         List<Bid> bids = bidService.findLastBidForEachAuctionByBidder(bidderId);
         return ResponseEntity.ok(bids);
@@ -59,7 +57,7 @@ public class BidController {
     @GetMapping("/auction/{auctionId}/winning")
     public ResponseEntity<?> getWinningBidByAuctionId(@PathVariable Long auctionId) {
         if (auctionId < 1) {
-            return new ResponseEntity<>("Invalid Auction id: " + auctionId, HttpStatus.BAD_REQUEST);
+            return new ResponseEntity<>(AUCTION_ID_GREATER_THEN_0, HttpStatus.BAD_REQUEST);
         }
         Optional<Bid> winningBid = bidService.findWinningBidByAuctionId(auctionId);
         return winningBid.map(ResponseEntity::ok)
@@ -69,7 +67,7 @@ public class BidController {
     @DeleteMapping("/auction/{auctionId}")
     public ResponseEntity<?> deleteBidsByAuctionId(@PathVariable Long auctionId) {
         if (auctionId < 1) {
-            return new ResponseEntity<>("Invalid Auction id: " + auctionId, HttpStatus.BAD_REQUEST);
+            return new ResponseEntity<>(AUCTION_ID_GREATER_THEN_0, HttpStatus.BAD_REQUEST);
         }
         bidService.deleteAllBidsByAuctionId(auctionId);
         return ResponseEntity.noContent().build();
