@@ -18,7 +18,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
-import java.util.Optional;
 
 @RestController
 @RequiredArgsConstructor
@@ -52,16 +51,6 @@ public class BidController {
         }
         List<Bid> bids = bidService.findLastBidForEachAuctionByBidder(bidderId);
         return ResponseEntity.ok(bids);
-    }
-
-    @GetMapping("/auction/{auctionId}/winning")
-    public ResponseEntity<?> getWinningBidByAuctionId(@PathVariable Long auctionId) {
-        if (auctionId < 1) {
-            return new ResponseEntity<>(AUCTION_ID_GREATER_THEN_0, HttpStatus.BAD_REQUEST);
-        }
-        Optional<Bid> winningBid = bidService.findWinningBidByAuctionId(auctionId);
-        return winningBid.map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @DeleteMapping("/auction/{auctionId}")
