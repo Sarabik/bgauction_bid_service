@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 
 @RestController
 @RequiredArgsConstructor
@@ -30,7 +31,7 @@ public class BidController {
     private static final String BIDDER_ID_GREATER_THEN_0 = "Bidder id must be greater then 0";
 
     @PostMapping
-    public ResponseEntity<?> createBid(@Valid @RequestBody BidCreationDto bidDto) {
+    public ResponseEntity<?> createBid(@Valid @RequestBody BidCreationDto bidDto) throws ExecutionException, InterruptedException {
         BidDto savedBid = bidMapper.bidToBidDto(bidService.saveBid(bidMapper.bidCreationDtoToBid(bidDto)));
         return ResponseEntity.status(201).body(savedBid);
     }

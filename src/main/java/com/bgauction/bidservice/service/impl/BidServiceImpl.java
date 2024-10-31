@@ -3,6 +3,8 @@ package com.bgauction.bidservice.service.impl;
 import com.bgauction.bidservice.exception.BadRequestException;
 import com.bgauction.bidservice.exception.NotFoundException;
 import com.bgauction.bidservice.feign.AuctionClient;
+import com.bgauction.bidservice.kafka.event.BidCreatedEvent;
+import com.bgauction.bidservice.kafka.eventPublisher.BidEventPublisher;
 import com.bgauction.bidservice.model.dto.AuctionDto;
 import com.bgauction.bidservice.model.entity.Bid;
 import com.bgauction.bidservice.repository.BidRepository;
@@ -12,9 +14,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.ExecutionException;
 
 @Service
 @RequiredArgsConstructor
@@ -22,16 +24,16 @@ public class BidServiceImpl implements BidService {
 
     private final BidRepository bidRepository;
     private final AuctionClient auctionClient;
+    private final BidEventPublisher bidEventPublisher;
     private static final String SELLER_IS_OWNER = "Seller with id: %d for Auction with id: %d can't be a bidder";
     private static final String NEW_BID_GREATER_THEN_CURRENT = "New bid amount must be greater then current price amount for Auction with id: %d";
     private static final String NEW_BID_GREATER_THEN_OLD = "New bid amount must be greater then previous bid amount for Auction with id: %d";
     private static final String NEW_BIDDER_IS_PREVIOUS = "Bidder id: %d of a new bid is equal to bidder id: %d of the previous bid";
     private static final String AUCTION_NOT_FOUND = "Auction with id: %d not found";
     private static final String AUCTION_NOT_ACTIVE = "Auction with id: %d is not ACTIVE";
-    private static final String AUCTION_PRICE_AND_WINNER_NOT_UPDATED = "Current price and winner for auction with id: %d are not updated";
 
     @Override
-    public Bid saveBid(Bid bid) {
+    public Bid saveBid(Bid bid) throws ExecutionException, InterruptedException {
         Long auctionId = bid.getAuctionId();
 
         AuctionDto auction = getAuctionIfItExistsAndActive(auctionId);
@@ -47,7 +49,9 @@ public class BidServiceImpl implements BidService {
         bid.setIsWinner(true);
         Bid savedBid = bidRepository.save(bid);
 
-        updateAuctionCurrentPriceAndWinner(auctionId, bid.getBidAmount(), bid.getBidderId());
+        BidCreatedEvent event = new BidCreatedEvent(
+                savedBid.getAuctionId(), savedBid.getBidderId(), savedBid.getBidAmount());
+        bidEventPublisher.publishBidCreatedEvent(event);
 
         return savedBid;
     }
@@ -64,13 +68,6 @@ public class BidServiceImpl implements BidService {
             throw new BadRequestException(String.format(AUCTION_NOT_ACTIVE, auction_id));
         }
         return auctionDto;
-    }
-
-    private void updateAuctionCurrentPriceAndWinner(Long auctionId, BigDecimal currentPrice, Long winnerId) {
-        ResponseEntity<Void> response = auctionClient.updateCurrentPriceAndWinner(auctionId, currentPrice, winnerId);
-        if (!response.getStatusCode().equals(HttpStatus.OK)) {
-            throw new BadRequestException(String.format(AUCTION_PRICE_AND_WINNER_NOT_UPDATED, auctionId));
-        }
     }
 
     private void changeStatusOfLastWinningBid(Bid newBid) {
