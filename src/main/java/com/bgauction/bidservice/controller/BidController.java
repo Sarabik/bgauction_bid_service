@@ -14,15 +14,13 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/bid")
 public class BidController {
 
     private final BidService bidService;
@@ -30,13 +28,17 @@ public class BidController {
     private static final String AUCTION_ID_GREATER_THEN_0 = "Auction id must be greater then 0";
     private static final String BIDDER_ID_GREATER_THEN_0 = "Bidder id must be greater then 0";
 
-    @PostMapping
-    public ResponseEntity<?> createBid(@Valid @RequestBody BidCreationDto bidDto) throws ExecutionException, InterruptedException {
+    @PostMapping("/bid")
+    public ResponseEntity<?> createBid(@Valid @RequestBody BidCreationDto bidDto,
+                                       @RequestHeader(value = "X-User-Id") Long userId) {
+        if (!userId.equals(bidDto.getBidderId())) {
+            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+        }
         BidDto savedBid = bidMapper.bidToBidDto(bidService.saveBid(bidMapper.bidCreationDtoToBid(bidDto)));
         return ResponseEntity.status(201).body(savedBid);
     }
 
-    @GetMapping("/auction/{auctionId}")
+    @GetMapping("/bid/auction/{auctionId}")
     public ResponseEntity<?> getBidsByAuctionId(@PathVariable Long auctionId) {
         if (auctionId < 1) {
             return new ResponseEntity<>(AUCTION_ID_GREATER_THEN_0, HttpStatus.BAD_REQUEST);
@@ -45,8 +47,12 @@ public class BidController {
         return ResponseEntity.ok(bids);
     }
 
-    @GetMapping("/bidder/{bidderId}/last")
-    public ResponseEntity<?> getLastBidForEachAuction(@PathVariable Long bidderId) {
+    @GetMapping("/bid/bidder/{bidderId}/last")
+    public ResponseEntity<?> getLastBidForEachAuction(@PathVariable Long bidderId,
+                                                      @RequestHeader(value = "X-User-Id") Long userId) {
+        if (!userId.equals(bidderId)) {
+            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+        }
         if (bidderId < 1) {
             return new ResponseEntity<>(BIDDER_ID_GREATER_THEN_0, HttpStatus.BAD_REQUEST);
         }
@@ -54,7 +60,7 @@ public class BidController {
         return ResponseEntity.ok(bids);
     }
 
-    @DeleteMapping("/auction/{auctionId}")
+    @DeleteMapping("/internal/bid/auction/{auctionId}")
     public ResponseEntity<?> deleteBidsByAuctionId(@PathVariable Long auctionId) {
         if (auctionId < 1) {
             return new ResponseEntity<>(AUCTION_ID_GREATER_THEN_0, HttpStatus.BAD_REQUEST);

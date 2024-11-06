@@ -9,10 +9,10 @@ import org.springframework.web.bind.annotation.PutMapping;
 
 import java.math.BigDecimal;
 
-@FeignClient(name = "AUCTIONSERVICE")
-public interface AuctionClient {
+@FeignClient(name = "GATEWAY", configuration = ClientFeignConfig.class)
+public interface GatewayClient {
 
-    String URL_BASE = "/auction/{id}";
+    String URL_BASE = "/internal/auction/{id}";
 
     @GetMapping(URL_BASE)
     ResponseEntity<AuctionDto> getAuctionById(@PathVariable Long id);
